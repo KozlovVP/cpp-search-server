@@ -12,6 +12,7 @@
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+//constexpr int EPSILON = 1e-6;
 
 //const int m6 = 1e-6;
 
@@ -96,6 +97,7 @@ public:
     inline static constexpr int INVALID_DOCUMENT_ID = -1;
     
     void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) {
+        all_ids_.push_back(document_id);
         if (IsValidWord(document) == false) {throw invalid_argument("Invalid characters"s);}
         if (document_id < 0) {throw invalid_argument("Invalid ID"s);}
 
@@ -116,8 +118,8 @@ public:
         auto matched_documents = FindAllDocuments(query, document_predicate);
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) { // почему при замене 1e-6
-                     return lhs.rating > rhs.rating; // на m6 (глобальная) задание не проходит тесты?
+                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) { // все равно не получается замена
+                     return lhs.rating > rhs.rating; // на EPSILON (contexpr), не проходит тесты
                  } else {
                      return lhs.relevance > rhs.relevance;
                  }
@@ -184,7 +186,7 @@ public:
     
     int GetDocumentId(int index) const {
         if (index > (documents_.size()-1)) {throw out_of_range("TD out of range"s);}
-        return std::next(documents_.begin(), index)->first;
+        return all_ids_[index];
     }
 
 private:
@@ -195,6 +197,7 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
+    vector<int> all_ids_;
     
     static bool IsValidWord(const string& word) {
         // A valid word must not contain special characters
@@ -241,6 +244,7 @@ private:
 
     QueryWord ParseQueryWord(string text) const {
         if (IsValidWord(text) == false) {throw invalid_argument("Invalid characters"s);}
+        if (text[0] == '-' && text[1] == '-') {throw invalid_argument("Invalid query"s);}
         bool is_minus = false;
         // Word shouldn't be empty
         if (text[0] == '-') {
