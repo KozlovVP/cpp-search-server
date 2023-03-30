@@ -7,10 +7,13 @@
 #include <utility>
 #include <vector>
 #include <stdexcept>
+#include <numeric>
 
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+
+//const int m6 = 1e-6;
 
 string ReadLine() {
     string s;
@@ -83,22 +86,20 @@ public:
     explicit SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
             for (const auto& word : stop_words) {
-                if (IsValidWord(word) == 0) {throw invalid_argument("Asto"s);}
+                if (IsValidWord(word) == false) {throw invalid_argument("Invalid characters"s);}
             }
     }
 
     explicit SearchServer(const string& stop_words_text)
-        : SearchServer(SplitIntoWords(stop_words_text))  {
-                if (IsValidWord(stop_words_text) == 0) {throw invalid_argument("Asto"s);}
-    }
+        : SearchServer(SplitIntoWords(stop_words_text))  {}
 
     inline static constexpr int INVALID_DOCUMENT_ID = -1;
     
     void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) {
-        if (IsValidWord(document) == 0 || document_id < 0) {throw invalid_argument("Asto"s);}
-        for (const auto& [id, smth] : documents_) {
-            if (document_id == id) {throw invalid_argument("Asto"s);}
-        }
+        if (IsValidWord(document) == false) {throw invalid_argument("Invalid characters"s);}
+        if (document_id < 0) {throw invalid_argument("Invalid ID"s);}
+
+        if (documents_.count(document_id) > 0) {throw invalid_argument("This ID already exists"s);}
         const vector<string> words = SplitIntoWordsNoStop(document);
         const double inv_word_count = 1.0 / words.size();
         for (const string& word : words) {
@@ -110,14 +111,13 @@ public:
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
         
-        if (IsValidWord(raw_query) == 0) {throw invalid_argument("Asto"s);}
-        if (Checker(raw_query) == 0) {throw invalid_argument("Asto"s);}
+        if (Checker(raw_query) == 0) {throw invalid_argument("Invalid query"s);}
         const Query query = ParseQuery(raw_query);
         auto matched_documents = FindAllDocuments(query, document_predicate);
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
-                     return lhs.rating > rhs.rating;
+                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) { // почему при замене 1e-6
+                     return lhs.rating > rhs.rating; // на m6 (глобальная) задание не проходит тесты?
                  } else {
                      return lhs.relevance > rhs.relevance;
                  }
@@ -145,7 +145,6 @@ public:
     }
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
-        if  ( !IsValidWord (raw_query)) {throw invalid_argument("Asto"s);}
         const Query query = ParseQuery ( raw_query );
         vector<string> matched_words;
  
@@ -154,8 +153,7 @@ public:
  
         for (auto i: query.minus_words )
         {
-            if  ( !IsValidWord (i)) {throw invalid_argument("Asto"s);}
-            if  ( i[0] == '-' || i.empty() || i[i.size()-1]=='-') {throw invalid_argument("Asto"s);}
+            if  ( i[0] == '-' || i.empty() || i[i.size()-1]=='-') {throw invalid_argument("Invalid query"s);}
         }
         if  ( raw_query.empty() ) {throw invalid_argument("Asto"s);}
         
@@ -185,13 +183,8 @@ public:
     }
     
     int GetDocumentId(int index) const {
-        if (index > (documents_.size()-1)) {throw out_of_range("Asto"s);}
-        int i = 0;
-        for (const auto& [a, b] : documents_) {
-            if (i == index) {return a;}
-            i+=1;
-        }
-        throw out_of_range("Asto"s);
+        if (index > (documents_.size()-1)) {throw out_of_range("TD out of range"s);}
+        return std::next(documents_.begin(), index)->first;
     }
 
 private:
@@ -202,6 +195,21 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
+    
+    static bool IsValidWord(const string& word) {
+        // A valid word must not contain special characters
+        return none_of(word.begin(), word.end(), [](char c) {
+            return c >= '\0' && c < ' ';
+        });
+    }
+    
+    bool Checker(const string& q) const {
+        for (int i = 0; i <= q.size()-1; i++) {
+            if ((q[i] == '-' && q[i+1] == '-') || (q[i] == '-' && q[i+1] == ' ')) {return 0;}
+        }
+        if (q.back() == '-') {return 0;}
+        return 1;
+    }
 
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -221,10 +229,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
+        int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
         return rating_sum / static_cast<int>(ratings.size());
     }
 
@@ -235,6 +240,7 @@ private:
     };
 
     QueryWord ParseQueryWord(string text) const {
+        if (IsValidWord(text) == false) {throw invalid_argument("Invalid characters"s);}
         bool is_minus = false;
         // Word shouldn't be empty
         if (text[0] == '-') {
@@ -303,20 +309,6 @@ private:
         return matched_documents;
     }
     
-    static bool IsValidWord(const string& word) {
-        // A valid word must not contain special characters
-        return none_of(word.begin(), word.end(), [](char c) {
-            return c >= '\0' && c < ' ';
-        });
-    }
-    
-    bool Checker(const string& q) const {
-        for (int i = 0; i <= q.size()-1; i++) {
-            if ((q[i] == '-' && q[i+1] == '-') || (q[i] == '-' && q[i+1] == ' ')) {return 0;}
-        }
-        if (q.back() == '-') {return 0;}
-        return 1;
-    }
 };
 
 // ==================== для примера =========================
