@@ -150,17 +150,8 @@ public:
         const Query query = ParseQuery ( raw_query );
         vector<string> matched_words;
  
-        if  ( query.plus_words.count("-") != 0 ) {throw invalid_argument("Asto"s);}
         GetDocumentId ( document_id );
- 
-        for (auto i: query.minus_words )
-        {
-            if  ( i[0] == '-' || i.empty() || i[i.size()-1]=='-') {throw invalid_argument("Invalid query"s);}
-        }
-        if  ( raw_query.empty() ) {throw invalid_argument("Asto"s);}
-        
-        
- 
+
         for ( const string& word : query.plus_words )
         {
             if ( word_to_document_freqs_.count( word )== 0 ){
@@ -260,6 +251,7 @@ private:
     };
 
     Query ParseQuery(const string& text) const {
+        if  ( text.empty() || text == "-"s) {throw invalid_argument("Invalid query"s);}
         Query query;
         for (const string& word : SplitIntoWords(text)) {
             const QueryWord query_word = ParseQueryWord(word);
@@ -270,6 +262,10 @@ private:
                     query.plus_words.insert(query_word.data);
                 }
             }
+        }
+        if  ( query.plus_words.count("-") != 0 ) {throw invalid_argument("Invalid query"s);}
+        for (auto i: query.minus_words ) {
+            if  ( i[0] == '-' || i.empty() || i[i.size()-1]=='-') {throw invalid_argument("Invalid query"s);}
         }
         return query;
     }
