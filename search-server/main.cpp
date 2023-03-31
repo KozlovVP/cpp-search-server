@@ -113,7 +113,7 @@ public:
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
         
-        if (Checker(raw_query) == 0) {throw invalid_argument("Invalid query"s);}
+        
         const Query query = ParseQuery(raw_query);
         auto matched_documents = FindAllDocuments(query, document_predicate);
         sort(matched_documents.begin(), matched_documents.end(),
@@ -196,14 +196,6 @@ private:
             return c >= '\0' && c < ' ';
         });
     }
-    
-    bool Checker(const string& q) const {
-        for (int i = 0; i <= q.size()-1; i++) {
-            if ((q[i] == '-' && q[i+1] == '-') || (q[i] == '-' && q[i+1] == ' ')) {return 0;}
-        }
-        if (q.back() == '-') {return 0;}
-        return 1;
-    }
 
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -234,6 +226,7 @@ private:
     };
 
     QueryWord ParseQueryWord(string text) const {
+        if  ( text.empty() || text == "-"s || text[text.size()-1] == '-') {throw invalid_argument("Invalid query"s);}
         if (IsValidWord(text) == false) {throw invalid_argument("Invalid characters"s);}
         if (text[0] == '-' && text[1] == '-') {throw invalid_argument("Invalid query"s);}
         bool is_minus = false;
@@ -251,7 +244,6 @@ private:
     };
 
     Query ParseQuery(const string& text) const {
-        if  ( text.empty() || text == "-"s) {throw invalid_argument("Invalid query"s);}
         Query query;
         for (const string& word : SplitIntoWords(text)) {
             const QueryWord query_word = ParseQueryWord(word);
@@ -264,9 +256,6 @@ private:
             }
         }
         if  ( query.plus_words.count("-") != 0 ) {throw invalid_argument("Invalid query"s);}
-        for (auto i: query.minus_words ) {
-            if  ( i[0] == '-' || i.empty() || i[i.size()-1]=='-') {throw invalid_argument("Invalid query"s);}
-        }
         return query;
     }
 
