@@ -1,5 +1,4 @@
 #pragma once
-// ТРЕНАЖЕР НЕ ПРОВЕРЯЕТ БЕЗ USING NAMESPACE STD;
 #include "search_server.h"
 #include <vector>
 #include <deque>
@@ -15,7 +14,10 @@ public:
     int GetNoResultRequests() const;
 private:
     struct QueryResult {
-        vector<Document> documents_;
+        //vector<Document> documents_;
+        QueryResult(int size) 
+            :docs_count(size) {}
+        int docs_count;
     };
     deque<QueryResult> requests_;
     const static int min_in_day_ = 1440;
@@ -31,6 +33,6 @@ vector<Document> RequestQueue::AddFindRequest(const string& raw_query, DocumentP
         	requests_.pop_front();
         	--request_num_;
         }
-        requests_.push_back({server_->FindTopDocuments(raw_query, document_predicate)});
+        requests_.push_back(QueryResult(server_->FindTopDocuments(raw_query, document_predicate).size()));
         return server_->FindTopDocuments(raw_query, document_predicate);
     }
