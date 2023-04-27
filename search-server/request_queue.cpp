@@ -1,4 +1,4 @@
-// ТРЕНАЖЕР НЕ ПРОВЕРЯЕТ БЕЗ USING NAMESPACE STD;
+//Вставьте сюда своё решение из урока «Очередь запросов» темы «Стек, очередь, дек».‎
 
 #include "request_queue.h"
 
@@ -12,7 +12,7 @@ vector<Document> RequestQueue::AddFindRequest(const string& raw_query, DocumentS
     	    requests_.pop_front();
     	    --request_num_;
     	}
-    	requests_.push_back({server_->FindTopDocuments(raw_query, status)});
+    	requests_.push_back(QueryResult(server_->FindTopDocuments(raw_query, status).size()));
     	return server_->FindTopDocuments(raw_query, status);
     }
 vector<Document> RequestQueue::AddFindRequest(const string& raw_query) {
@@ -22,11 +22,11 @@ vector<Document> RequestQueue::AddFindRequest(const string& raw_query) {
     	    requests_.pop_front();
     	    --request_num_;
     	}
-    	requests_.push_back({server_->FindTopDocuments(raw_query)});
+    	requests_.push_back(QueryResult(server_->FindTopDocuments(raw_query).size()));
     	return server_->FindTopDocuments(raw_query);
     }
 int RequestQueue::GetNoResultRequests() const {
-    	return count_if(requests_.begin(), requests_.end(), [](QueryResult doc){return doc.documents_.empty();});
+    	return count_if(requests_.begin(), requests_.end(), [](QueryResult doc){return doc.docs_count == 0;});
     }
 
 
