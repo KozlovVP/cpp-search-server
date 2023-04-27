@@ -1,4 +1,5 @@
 #pragma once
+// ТРЕНАЖЕР ПОЧЕМУ-ТО НЕ ПРОВЕРЯЕТ БЕЗ USING NAMESPACE STD( ПОЭТОМУ ПРИШЛОСЬ ОСТАВИТЬ
 #include "search_server.h"
 #include <vector>
 #include <deque>
