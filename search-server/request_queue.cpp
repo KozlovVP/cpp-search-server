@@ -1,11 +1,11 @@
-// ТРЕНАЖЕР ПОЧЕМУ-ТО НЕ ПРОВЕРЯЕТ БЕЗ USING NAMESPACE STD( ПОЭТОМУ ПРИШЛОСЬ ОСТАВИТЬ
+//Вставьте сюда своё решение из урока «Очередь запросов» темы «Стек, очередь, дек».‎
 
 #include "request_queue.h"
 
 /*explicit*/ RequestQueue::RequestQueue(const SearchServer& search_server): server_(&search_server) {
     }
 
-vector<Document> RequestQueue::AddFindRequest(const string& raw_query, DocumentStatus status) {
+std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentStatus status) {
     	++request_num_;
     	if(request_num_ > min_in_day_)
     	{
@@ -15,7 +15,7 @@ vector<Document> RequestQueue::AddFindRequest(const string& raw_query, DocumentS
     	requests_.push_back(QueryResult(server_->FindTopDocuments(raw_query, status).size()));
     	return server_->FindTopDocuments(raw_query, status);
     }
-vector<Document> RequestQueue::AddFindRequest(const string& raw_query) {
+std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query) {
     	++request_num_;
     	if(request_num_ > min_in_day_)
     	{
