@@ -49,7 +49,7 @@ public:
     auto begin() const {return pages_.begin();}
     auto end() const {return pages_.end();}
     
-    vector<IteratorRange<Iterator>> pages_;
+    std::vector<IteratorRange<Iterator>> pages_;
 };
 
 
