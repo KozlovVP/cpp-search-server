@@ -9,11 +9,11 @@
 #include <set>
 #include <vector>
 
+inline static constexpr int MAX_RESULT_DOCUMENT_COUNT = 5;
+inline static constexpr double eps = 1e-6;
 
 class SearchServer {
 public:
-    inline static constexpr int MAX_RESULT_DOCUMENT_COUNT = 5;
-    inline static constexpr double eps = 1e-6;
     
     template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words);
