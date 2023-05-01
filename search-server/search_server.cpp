@@ -2,13 +2,13 @@
 
 #include "search_server.h"
 
-/*explicit*/ SearchServer::SearchServer(const std::string& stop_words_text)
+SearchServer::SearchServer(const std::string& stop_words_text)
         : SearchServer(
             SplitIntoWords(stop_words_text))  // Invoke delegating constructor from string container
     {
     }
 
-/*static*/ int SearchServer::ComputeAverageRating(const std::vector<int>& ratings) {
+int SearchServer::ComputeAverageRating(const std::vector<int>& ratings) {
         if (ratings.empty()) {
             return 0;
         }
@@ -22,6 +22,7 @@
 void SearchServer::AddDocument(int document_id, const std::string& document, DocumentStatus status,
                      const std::vector<int>& ratings) {
         if ((document_id < 0) || (documents_.count(document_id) > 0)) {
+            using namespace std::string_literals;
             throw std::invalid_argument("Invalid document_id"s);
         }
         const auto words = SplitIntoWordsNoStop(document);
@@ -81,7 +82,7 @@ bool SearchServer::IsStopWord(const std::string& word) const {
         return stop_words_.count(word) > 0;
     }
 
-/*static*/ bool SearchServer::IsValidWord(const std::string& word) {
+bool SearchServer::IsValidWord(const std::string& word) {
         // A valid word must not contain special characters
         return none_of(word.begin(), word.end(), [](char c) {
             return c >= '\0' && c < ' ';
@@ -92,6 +93,7 @@ std::vector<std::string> SearchServer::SplitIntoWordsNoStop(const std::string& t
         std::vector<std::string> words;
         for (const std::string& word : SplitIntoWords(text)) {
             if (!IsValidWord(word)) {
+                using namespace std::string_literals;
                 throw std::invalid_argument("Word "s + word + " is invalid"s);
             }
             if (!IsStopWord(word)) {
@@ -101,14 +103,9 @@ std::vector<std::string> SearchServer::SplitIntoWordsNoStop(const std::string& t
         return words;
     }
 
-struct SearchServer::QueryWord {
-        std::string data;
-        bool is_minus;
-        bool is_stop;
-    };
-
 SearchServer::QueryWord SearchServer::ParseQueryWord(const std::string& text) const {
         if (text.empty()) {
+            using namespace std::string_literals;
             throw std::invalid_argument("Query word is empty"s);
         }
         std::string word = text;
@@ -118,6 +115,7 @@ SearchServer::QueryWord SearchServer::ParseQueryWord(const std::string& text) co
             word = word.substr(1);
         }
         if (word.empty() || word[0] == '-' || !IsValidWord(word)) {
+            using namespace std::string_literals;
             throw std::invalid_argument("Query word "s + text + " is invalid"s);
         }
 
