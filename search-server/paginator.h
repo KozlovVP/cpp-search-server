@@ -29,17 +29,11 @@ public:
             if (distance(range_begin + i, range_end) >= size)
             {
                 IteratorRange<Iterator> temp(range_begin + i, range_begin + i + size, size);
-                /*temp.begin = range_begin + i;
-                temp.end = range_begin + i + size;
-                temp.size = size;*/
                 pages_.push_back(temp);
             }
             else
             {
                 IteratorRange<Iterator> temp(range_begin + i, range_end, distance(temp.begin(), temp.end()));
-                /*temp.begin = range_begin + i;
-                temp.end = range_end;
-                temp.size = distance(temp.begin, temp.end);*/
                 pages_.push_back(temp);
                 break;  
             }
@@ -56,4 +50,14 @@ public:
 template <typename Container>
 auto Paginate(const Container& c, size_t page_size) {
     return Paginator(begin(c), end(c), page_size);
+}
+
+template <typename Iterator>
+std::ostream& operator<<(std::ostream &os, IteratorRange<Iterator> page) 
+{
+    for (auto i = page.begin(); i < page.end(); i++)
+    {
+        std::cout << *i;
+    }
+    return os;
 }
