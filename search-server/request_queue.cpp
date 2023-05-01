@@ -1,8 +1,6 @@
-//Вставьте сюда своё решение из урока «Очередь запросов» темы «Стек, очередь, дек».‎
-
 #include "request_queue.h"
 
-/*explicit*/ RequestQueue::RequestQueue(const SearchServer& search_server): server_(&search_server) {
+RequestQueue::RequestQueue(const SearchServer& search_server): server_(&search_server) {
     }
 
 std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentStatus status) {
@@ -28,5 +26,4 @@ std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query)
 int RequestQueue::GetNoResultRequests() const {
     	return count_if(requests_.begin(), requests_.end(), [](QueryResult doc){return doc.docs_count == 0;});
     }
-
 
