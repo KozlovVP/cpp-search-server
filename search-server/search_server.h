@@ -9,11 +9,12 @@
 #include <set>
 #include <vector>
 
-const int MAX_RESULT_DOCUMENT_COUNT = 5;
-//const int DELTA = 1e-6; ВЫВОДИТ ОШИБКИ ТЕСТОВ ЕСЛИ ИСПОЛЬЗОВАТЬ DELTA
 
 class SearchServer {
 public:
+    inline static constexpr int MAX_RESULT_DOCUMENT_COUNT = 5;
+    inline static constexpr double eps = 1e-6;
+    
     template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words);
 
@@ -53,7 +54,12 @@ private:
 
     static int ComputeAverageRating(const std::vector<int>& ratings);
 
-    struct QueryWord;
+    struct QueryWord 
+    {
+        std::string data;
+        bool is_minus;
+        bool is_stop;
+    };
 
     QueryWord ParseQueryWord(const std::string& text) const;
 
@@ -74,11 +80,12 @@ private:
 
 
 template <typename StringContainer>
-/*explicit*/ SearchServer::SearchServer(const StringContainer& stop_words)
+SearchServer::SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words))  // Extract non-empty stop words
     {
         if (!all_of(stop_words_.begin(), stop_words_.end(), IsValidWord)) {
-            throw std::invalid_argument("Some of stop words are invalid");
+            using namespace std::string_literals;
+            throw std::invalid_argument("Some of stop words are invalid"s);
         }
     }
 
@@ -91,7 +98,7 @@ std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_quer
 
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                 if (std::abs(lhs.relevance - rhs.relevance) < eps) {
                      return lhs.rating > rhs.rating;
                  } else {
                      return lhs.relevance > rhs.relevance;
