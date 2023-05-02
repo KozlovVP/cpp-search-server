@@ -6,5 +6,11 @@
 #include "request_queue.h"
 #include "search_server.h"
 #include "string_processing.h"
+#include "remove_duplicates.h"
 
 using namespace std; // для тренажера
+
+int main()
+{
+    
+}
