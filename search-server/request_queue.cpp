@@ -26,4 +26,3 @@ std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query)
 int RequestQueue::GetNoResultRequests() const {
     	return count_if(requests_.begin(), requests_.end(), [](QueryResult doc){return doc.docs_count == 0;});
     }
-
