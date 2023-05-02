@@ -26,10 +26,12 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
             throw std::invalid_argument("Invalid document_id"s);
         }
         const auto words = SplitIntoWordsNoStop(document);
-
+        
+        
         const double inv_word_count = 1.0 / words.size();
         for (const std::string& word : words) {
             word_to_document_freqs_[word][document_id] += inv_word_count;
+            document_id_to_words_freq_[document_id][word] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
         document_ids_.push_back(document_id);
@@ -50,9 +52,10 @@ int SearchServer::GetDocumentCount() const {
         return documents_.size();
     }
 
-int SearchServer::GetDocumentId(int index) const {
+/*int SearchServer::GetDocumentId(int index) const {
         return document_ids_.at(index);
-    }
+    }*/
+
 
 std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument(const std::string& raw_query, int document_id) const {
         const auto query = ParseQuery(raw_query);
@@ -76,6 +79,30 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
             }
         }
         return {matched_words, documents_.at(document_id).status};
+    }
+
+    std::vector<int>::const_iterator SearchServer::begin() const
+    {
+        return document_ids_.begin();
+    }
+    std::vector<int>::const_iterator SearchServer::end() const
+    {
+        return document_ids_.end();
+    }
+
+    const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
+        return document_id_to_words_freq_.count(document_id) == 1 ? document_id_to_words_freq_.at(document_id) : document_id_to_words_freq_.at(-1);
+    }
+
+    void SearchServer::RemoveDocument(int document_id) {
+        if (count(document_ids_.begin(), document_ids_.end(), document_id) == 0) {return;}
+        for (const auto& [word, id_freq] : word_to_document_freqs_) {
+            word_to_document_freqs_.at(word).erase(document_id);
+        }
+        documents_.erase(document_id);
+        auto it = find(document_ids_.begin(), document_ids_.end(), document_id);
+        document_ids_.erase(it);
+        document_id_to_words_freq_.erase(document_id);
     }
 
 bool SearchServer::IsStopWord(const std::string& word) const {
