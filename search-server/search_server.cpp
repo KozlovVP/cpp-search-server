@@ -29,12 +29,15 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
         
         
         const double inv_word_count = 1.0 / words.size();
+        std::set<std::string> set_of_words;
         for (const std::string& word : words) {
+            set_of_words.insert(word);
             word_to_document_freqs_[word][document_id] += inv_word_count;
             document_id_to_words_freq_[document_id][word] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
-        document_ids_.push_back(document_id);
+        document_ids_.insert(document_id);
+        set_of_words_id_[set_of_words].insert(document_id);
     }
 
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentStatus status) const {
@@ -81,22 +84,27 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
         return {matched_words, documents_.at(document_id).status};
     }
 
-    std::vector<int>::const_iterator SearchServer::begin() const
+    std::set<int>::const_iterator SearchServer::begin() const
     {
         return document_ids_.begin();
     }
-    std::vector<int>::const_iterator SearchServer::end() const
+    std::set<int>::const_iterator SearchServer::end() const
     {
         return document_ids_.end();
     }
 
     const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
-        return document_id_to_words_freq_.count(document_id) == 1 ? document_id_to_words_freq_.at(document_id) : document_id_to_words_freq_.at(-1);
+        if (document_id_to_words_freq_.count(document_id) == 1) 
+        {
+            return document_id_to_words_freq_.at(document_id);
+        }
+        static std::map<std::string, double> empty_result;
+        return empty_result;
     }
 
     void SearchServer::RemoveDocument(int document_id) {
-        if (count(document_ids_.begin(), document_ids_.end(), document_id) == 0) {return;}
-        for (const auto& [word, id_freq] : word_to_document_freqs_) {
+        if (document_ids_.count(document_id) == 0) {return;}
+        for (const auto& [word, id_freq] : document_id_to_words_freq_.at(document_id)) {
             word_to_document_freqs_.at(word).erase(document_id);
         }
         documents_.erase(document_id);
