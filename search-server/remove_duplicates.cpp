@@ -1,27 +1,26 @@
 #include "remove_duplicates.h"
 
+void RemoveDuplicates(SearchServer& search_server) { 
+    std::set<std::set<std::string>> res; 
+    std::vector<int> duplicates_id; 
 
-void RemoveDuplicates(SearchServer& search_server) {
-    std::set<int> ids_to_delete;
-    for (auto first_it = search_server.begin(); first_it != search_server.end(); ++first_it) {
-        if (!ids_to_delete.count(*first_it)) {
-            for (auto second_it = std::next(first_it); second_it != search_server.end(); ++second_it) {
-                if (!ids_to_delete.count(*second_it)) {
-                    std::set<std::string> first_document_content, second_document_content;
-                    for (const auto& [word, _] : search_server.GetWordFrequencies(*first_it)) {
-                        first_document_content.insert(word);
-                    }
-                    for (const auto& [word, _] : search_server.GetWordFrequencies(*second_it)) {
-                        second_document_content.insert(word);
-                    }
-                    if (first_document_content == second_document_content) {
-                        ids_to_delete.insert(*second_it);
-                    }
-                }
-            }
-        }
-    }
-    for (int id : ids_to_delete) {
-        search_server.RemoveDocument(id);
-    }
-}
+    for(auto it = search_server.begin(); it != search_server.end(); ++it) { 
+        auto get_words = search_server.GetWordFrequencies(*it); 
+        std::set<std::string> words; 
+
+        for(auto [word, tf] : get_words) { 
+            words.insert(word); 
+        } 
+
+        auto emplace_bool = res.emplace(words);
+        if(!emplace_bool.second) {    // if element exists
+            duplicates_id.push_back(*it); 
+            continue;
+        } 
+    } 
+
+    for(auto id : duplicates_id) { 
+        std::cout << "Found duplicate document id " << id << std::endl; 
+        search_server.RemoveDocument(id); 
+    } 
+} 
