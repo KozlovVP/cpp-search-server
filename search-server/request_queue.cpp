@@ -1,28 +1,34 @@
 #include "request_queue.h"
 
-RequestQueue::RequestQueue(const SearchServer& search_server): server_(&search_server) {
-    }
-
-std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentStatus status) {
-    	++request_num_;
-    	if(request_num_ > min_in_day_)
+    std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentStatus status) {
+    	++RequestQueue::request_num_;
+    	if(RequestQueue::request_num_ > RequestQueue::min_in_day_)
     	{
-    	    requests_.pop_front();
-    	    --request_num_;
+    		RequestQueue::requests_.pop_front();
+    	    --RequestQueue::request_num_;
     	}
-    	requests_.push_back(QueryResult(server_->FindTopDocuments(raw_query, status).size()));
-    	return server_->FindTopDocuments(raw_query, status);
+    	RequestQueue::requests_.push_back({RequestQueue::server_.FindTopDocuments(raw_query, status)});
+    	return server_.FindTopDocuments(raw_query, status);
     }
-std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query) {
-    	++request_num_;
-    	if(request_num_ > min_in_day_)
+    std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query) {
+    	++RequestQueue::request_num_;
+    	if(RequestQueue::request_num_ > RequestQueue::min_in_day_)
     	{
-    	    requests_.pop_front();
-    	    --request_num_;
+    		RequestQueue::requests_.pop_front();
+    	    --RequestQueue::request_num_;
     	}
-    	requests_.push_back(QueryResult(server_->FindTopDocuments(raw_query).size()));
-    	return server_->FindTopDocuments(raw_query);
+    	RequestQueue::requests_.push_back({RequestQueue::server_.FindTopDocuments(raw_query)});
+    	return server_.FindTopDocuments(raw_query);
     }
-int RequestQueue::GetNoResultRequests() const {
-    	return count_if(requests_.begin(), requests_.end(), [](QueryResult doc){return doc.docs_count == 0;});
+    int RequestQueue::GetNoResultRequests() const {
+    	using namespace std;
+    	int count = 0;
+    	deque<QueryResult> dq_tmp(requests_);
+    	while (!dq_tmp.empty())
+    	{
+    	    if (dq_tmp.back().documents_.empty())
+    	    	++count;
+    	    dq_tmp.pop_back();
+    	}
+    	return count;
     }
