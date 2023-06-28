@@ -1,16 +1,16 @@
-//Вставьте сюда своё решение из урока «Очередь запросов» темы «Стек, очередь, дек».‎
-
 #include "read_input_functions.h"
 
 std::string ReadLine() {
-    std::string s;
-    std::getline(std::cin, s);
+	using namespace std;
+    string s;
+    getline(cin, s);
     return s;
 }
 
 int ReadLineWithNumber() {
+	using namespace std;
     int result;
-    std::cin >> result;
+    cin >> result;
     ReadLine();
     return result;
 }
