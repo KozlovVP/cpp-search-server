@@ -3,13 +3,7 @@
 
 struct Document {
     Document();
-
-    Document(int id, double relevance, int rating)
-        : id(id)
-        , relevance(relevance)
-        , rating(rating) {
-    }
-
+    Document(int id, double relevance, int rating);
     int id = 0;
     double relevance = 0.0;
     int rating = 0;
@@ -22,4 +16,4 @@ enum class DocumentStatus {
     REMOVED,
 };
 
-std::ostream& operator<<(std::ostream &os, const Document& doc);
+std::ostream& operator<<(std::ostream& os, const Document& doc);
