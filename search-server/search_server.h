@@ -17,8 +17,9 @@
 #include "log_duration.h"
 #include "concurrent_map.h"
 
-using namespace std;
+using matched_tuple = std::tuple<std::vector<std::string_view>, DocumentStatus>;
 
+inline static constexpr double eps = 1e-6;
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 
 class SearchServer {
@@ -39,8 +40,8 @@ public:
     void AddDocument(int document_id, std::string_view document, DocumentStatus status, const std::vector<int>& ratings);
 
     void RemoveDocument(int document_id);
-    void RemoveDocument(const execution::parallel_policy&, int document_id);
-    void RemoveDocument(const execution::sequenced_policy&, int document_id);
+    void RemoveDocument(const std::execution::parallel_policy&, int document_id);
+    void RemoveDocument(const std::execution::sequenced_policy&, int document_id);
 
     template <typename DocumentPredicate>
     std::vector<Document> FindTopDocuments(const std::string_view& raw_query, DocumentPredicate document_predicate) const;
@@ -63,11 +64,11 @@ public:
     int GetDocumentCount() const;
     std::set<int>::iterator begin();
     std::set<int>::iterator end();
-    const map<std::string_view, double>& GetWordFrequencies(int document_id)const;
+    const std::map<std::string_view, double>& GetWordFrequencies(int document_id)const;
 
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::string_view& raw_query, int document_id) const;
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const execution::parallel_policy&, const std::string_view& raw_query, int document_id) const;
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const execution::sequenced_policy&, const std::string_view& raw_query, int document_id) const;
+    matched_tuple MatchDocument(const std::string_view& raw_query, int document_id) const;
+    matched_tuple MatchDocument(const std::execution::parallel_policy&, const std::string_view& raw_query, int document_id) const;
+    matched_tuple MatchDocument(const std::execution::sequenced_policy&, const std::string_view& raw_query, int document_id) const;
 
 private:
     struct DocumentData {
@@ -75,7 +76,7 @@ private:
         DocumentStatus status;
     };
     const std::set<std::string, std::less<>> stop_words_;
-    std::list<string> raw_documents_;
+    std::list<std::string> raw_documents_;
     std::map<std::string_view, std::map<int, double>> word_to_document_freqs_;
     std::map<int, std::map<std::string_view, double>> document_to_word_freqs_;
     std::map<int, DocumentData> documents_;
@@ -98,8 +99,6 @@ private:
     QueryWord ParseQueryWord(const std::string_view& text) const;
 
     struct Query {
-        //std::set<std::string_view> plus_words;
-        //std::set<std::string_view> minus_words;
     	std::vector<std::string_view> plus_words;
     	std::vector<std::string_view> minus_words;
     };
@@ -114,6 +113,8 @@ private:
     
     template <typename DocumentPredicate>
     std::vector<Document> FindAllDocuments(std::execution::parallel_policy, const Query& query, DocumentPredicate document_predicate) const;
+    
+    std::vector<Document> FindTopDocumentsMediator(std::vector<Document>& matched_documents) const;
 };
 
 template <typename StringContainer>
@@ -133,19 +134,7 @@ template <typename DocumentPredicate>
 
         auto matched_documents = FindAllDocuments(query, document_predicate);
 
-        sort(matched_documents.begin(), matched_documents.end(),
-             [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
-                     return lhs.rating > rhs.rating;
-                 } else {
-                     return lhs.relevance > rhs.relevance;
-                 }
-             });
-        if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
-            matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
-        }
-
-        return matched_documents;
+        return FindTopDocumentsMediator(matched_documents);
     }
 
 template <class ExecutionPolicy, typename DocumentPredicate>
@@ -160,24 +149,12 @@ template <class ExecutionPolicy, typename DocumentPredicate>
 
         auto matched_documents = FindAllDocuments(std::execution::par, query, document_predicate);
         
-        sort(matched_documents.begin(), matched_documents.end(),
-             [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
-                     return lhs.rating > rhs.rating;
-                 } else {
-                     return lhs.relevance > rhs.relevance;
-                 }
-             });
-        if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
-            matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
-        }
-
-        return matched_documents;
+        return FindTopDocumentsMediator(matched_documents);
     }
     
 template <class ExecutionPolicy>
     std::vector<Document> SearchServer::FindTopDocuments(const ExecutionPolicy& policy, const std::string_view& raw_query, DocumentStatus status) const {
-        if constexpr (is_same_v<ExecutionPolicy, std::execution::sequenced_policy>) {
+        if constexpr (std::is_same_v<ExecutionPolicy, std::execution::sequenced_policy>) {
             return FindTopDocuments(raw_query, status);
         }
         return SearchServer::FindTopDocuments(std::execution::par,
@@ -188,7 +165,7 @@ template <class ExecutionPolicy>
     
     template <class ExecutionPolicy>
     std::vector<Document> SearchServer::FindTopDocuments(const ExecutionPolicy& policy, const std::string_view& raw_query) const {
-        if constexpr (is_same_v<ExecutionPolicy, std::execution::sequenced_policy>) {
+        if constexpr (std::is_same_v<ExecutionPolicy, std::execution::sequenced_policy>) {
             return FindTopDocuments(raw_query);
         }
         return SearchServer::FindTopDocuments(std::execution::par,
