@@ -1,8 +1,9 @@
 #include "search_server.h"
 
+using namespace std;
+
     void SearchServer::AddDocument(int document_id, std::string_view document, DocumentStatus status, const std::vector<int>& ratings)
     {
-    	using namespace std;
     	if ((document_id < 0) || (documents_.count(document_id) > 0)) {
     		throw invalid_argument("Invalid document_id"s);
     	}
@@ -88,9 +89,8 @@
     	return document_to_word_freqs_.at(document_id);
     }
 
-    std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const std::string_view& raw_query,
+    matched_tuple SearchServer::MatchDocument(const std::string_view& raw_query,
                                                             int document_id) const {
-        	using namespace std;
             const auto query = ParseQuery(raw_query);
 
         	if(any_of(query.minus_words.begin(), query.minus_words.end(),//если хоть одно минус-слово встретилось, то возвращаем пустой вектор
@@ -108,21 +108,12 @@
                     matched_words.push_back(word);
                 }
             }
-            /*for (const string_view& word : query.minus_words) {
-                if (word_to_document_freqs_.count(word) == 0) {
-                    continue;
-                }
-                if (SearchServer::word_to_document_freqs_.at(word).count(document_id)) {
-                    matched_words.clear();
-                    break;
-                }
-            }*/
+
             return {matched_words, documents_.at(document_id).status};
         }
 
-        std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const execution::parallel_policy&, const std::string_view& raw_query, int document_id) const
+        matched_tuple SearchServer::MatchDocument(const execution::parallel_policy&, const std::string_view& raw_query, int document_id) const
         {
-        	using namespace std;
         	pair<vector<string_view>, vector<string_view>> query;//аналог структуры query из двух векторов
 
         	for(const auto& word : SplitIntoWords(raw_query))// аналог ParseQuery
@@ -161,7 +152,7 @@
         	return {matched_words, documents_.at(document_id).status};
         }
 
-        std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const execution::sequenced_policy&, const std::string_view& raw_query, int document_id) const
+        matched_tuple SearchServer::MatchDocument(const execution::sequenced_policy&, const std::string_view& raw_query, int document_id) const
         {
         	return SearchServer::MatchDocument(raw_query, document_id);
         }
@@ -173,7 +164,6 @@
 
     bool SearchServer::IsValidWord(const std::string_view& word) {
         // A valid word must not contain special characters
-    	using namespace std;
         return none_of(word.begin(), word.end(), [](char c) {
             return c >= '\0' && c < ' ';
         });
@@ -181,7 +171,6 @@
 
     std::vector<std::string_view> SearchServer::SplitIntoWordsNoStop(const std::string_view text) const
     {
-    	using namespace std;
     	vector<string_view> words;
     	for(const string_view word : SplitIntoWords(text))
     	{
@@ -199,15 +188,12 @@
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
+        int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
+        
         return rating_sum / static_cast<int>(ratings.size());
     }
 
     SearchServer::QueryWord SearchServer::ParseQueryWord(const std::string_view& text) const {
-    	using namespace std;
         if (text.empty()) {
             throw invalid_argument("Query word is empty"s);
         }
@@ -225,7 +211,6 @@
     }
 
     SearchServer::Query SearchServer::ParseQuery(const std::string_view& text) const {
-    	using namespace std;
         SearchServer::Query result;
         for (const auto& word : SplitIntoWords(text)) {
             const auto query_word = ParseQueryWord(word);
@@ -251,7 +236,22 @@
 
     // Existence required
     double SearchServer::ComputeWordInverseDocumentFreq(const std::string_view& word) const {
-    	using namespace std;
         return log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
     }
+
+    std::vector<Document> SearchServer::FindTopDocumentsMediator(std::vector<Document>& matched_documents) const {
+    sort(matched_documents.begin(), matched_documents.end(),
+             [](const Document& lhs, const Document& rhs) {
+                 if (abs(lhs.relevance - rhs.relevance) < eps) {
+                     return lhs.rating > rhs.rating;
+                 } else {
+                     return lhs.relevance > rhs.relevance;
+                 }
+             });
+    if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
+        matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
+    }
+
+    return matched_documents;
+}
 
