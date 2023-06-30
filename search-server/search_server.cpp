@@ -64,6 +64,30 @@ using namespace std;
         return SearchServer::FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
     }
 
+    std::vector<Document> SearchServer::FindTopDocuments(std::execution::parallel_policy, const std::string_view& raw_query, DocumentStatus status) const {
+        return SearchServer::FindTopDocuments(std::execution::par,
+            raw_query, [status](int document_id, DocumentStatus document_status, int rating) {
+            return document_status == status;
+            });
+    }
+
+    std::vector<Document> SearchServer::FindTopDocuments(std::execution::parallel_policy, const std::string_view& raw_query) const {
+        return SearchServer::FindTopDocuments(std::execution::par,
+            raw_query, [](int document_id, DocumentStatus document_status, int rating) {
+                return document_status == DocumentStatus::ACTUAL;
+            });
+    }
+
+std::vector<Document> SearchServer::FindTopDocuments(std::execution::sequenced_policy, const std::string_view& raw_query) const {
+        return FindTopDocuments(raw_query);
+    }
+
+std::vector<Document> SearchServer::FindTopDocuments(std::execution::sequenced_policy, const std::string_view& raw_query, DocumentStatus status) const {
+        return FindTopDocuments(raw_query, status);
+    }
+
+    
+
 
     int SearchServer::GetDocumentCount() const {
         return documents_.size();
