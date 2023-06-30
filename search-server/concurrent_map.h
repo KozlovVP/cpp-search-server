@@ -10,12 +10,11 @@
 #include <mutex>
 
 
-using namespace std::string_literals;
-
 template <typename Key, typename Value>
 class ConcurrentMap {
 public:
-    static_assert(std::is_integral_v<Key>, "ConcurrentMap supports only integer keys"s);
+    //using namespace std::string_literals;
+    static_assert(std::is_integral_v<Key>, "ConcurrentMap supports only integer keys");
 
     struct Access {
         Access(const Key& key, typename ConcurrentMap::Bucket& bucket_data) 
@@ -29,6 +28,7 @@ public:
     void Erase(const Key& key) {
         uint64_t bucket_index = static_cast<uint64_t>(key) % buckets_.size();
         auto& bucket = buckets_[bucket_index];
+        std::lock_guard<std::mutex> g(bucket.mtx);
         bucket.data.erase(key);
     }
 
