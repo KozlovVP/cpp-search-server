@@ -12,7 +12,7 @@
 
 class LogDuration {
 public:
-    LogDuration(const std::string& id) : id_(id) {}
+    LogDuration(const std::ostream &id) : id_(id) {}
 
     ~LogDuration() {
         using namespace std;
